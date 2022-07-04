@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,11 +21,69 @@ main function reads host/port from env just for an example, flavor it following 
 // Start /** Starts the web server listener on given host and port.
 func Start(host string, port int) {
 	router := mux.NewRouter()
-
+	router.HandleFunc("/name/{PARAM}", getNameHandler).Methods("GET")
+	router.HandleFunc("/bad", getBadHandler).Methods("GET")
+	router.HandleFunc("/data", getDataHandler).Methods("POST")
+	router.HandleFunc("/headers", getHeadersHandler).Methods("POST")
+	router.HandleFunc("/", notDefinedHandler)
 	log.Println(fmt.Printf("Starting API server on %s:%d\n", host, port))
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), router); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getNameHandler(writer http.ResponseWriter, request *http.Request) {
+	vars := mux.Vars(request)
+	writer.WriteHeader(http.StatusOK)
+	writer.Write([]byte("Hello, " + vars["PARAM"] + "!"))
+}
+
+func getBadHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.WriteHeader(http.StatusInternalServerError)
+}
+
+func getDataHandler(writer http.ResponseWriter, request *http.Request) {
+	body, err := io.ReadAll(request.Body)
+	if err == nil {
+		response := "I got message:\n" + string(body)
+		writer.Write([]byte(response))
+	}
+}
+
+func getHeadersHandler(writer http.ResponseWriter, request *http.Request) {
+	headers := request.Header
+
+	a, okA := headers["A"]
+	b, okB := headers["B"]
+
+	if !okA || !okB {
+		getBadHandler(writer, request)
+		return
+	}
+
+	aInt, err := strconv.Atoi(a[0])
+	if err != nil {
+		writeError(writer, request, err)
+		return
+	}
+	bInt, err := strconv.Atoi(b[0])
+	if err != nil {
+		writeError(writer, request, err)
+		return
+	}
+
+	writer.WriteHeader(http.StatusOK)
+	writer.Header().Set("a+b", strconv.Itoa(aInt+bInt))
+
+}
+
+func notDefinedHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.WriteHeader(http.StatusOK)
+}
+
+func writeError(writer http.ResponseWriter, request *http.Request, err error) {
+	getBadHandler(writer, request)
+	writer.Write([]byte(err.Error()))
 }
 
 //main /** starts program, gets HOST:PORT param and calls Start func.
