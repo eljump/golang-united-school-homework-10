@@ -66,6 +66,7 @@ func getHeadersHandler(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, request, err)
 		return
 	}
+
 	bInt, err := strconv.Atoi(b[0])
 	if err != nil {
 		writeError(writer, request, err)
