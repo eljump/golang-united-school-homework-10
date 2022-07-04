@@ -57,19 +57,21 @@ func getHeadersHandler(writer http.ResponseWriter, request *http.Request) {
 	b, okB := headers["B"]
 
 	if !okA || !okB {
-		getBadHandler(writer, request)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	aInt, err := strconv.Atoi(a[0])
-	if err != nil {
-		writeError(writer, request, err)
+	aInt, errA := strconv.Atoi(a[0])
+	if errA != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(errA.Error()))
 		return
 	}
 
-	bInt, err := strconv.Atoi(b[0])
-	if err != nil {
-		writeError(writer, request, err)
+	bInt, errB := strconv.Atoi(b[0])
+	if errB != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(errB.Error()))
 		return
 	}
 
@@ -80,11 +82,6 @@ func getHeadersHandler(writer http.ResponseWriter, request *http.Request) {
 
 func notDefinedHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
-}
-
-func writeError(writer http.ResponseWriter, request *http.Request, err error) {
-	getBadHandler(writer, request)
-	writer.Write([]byte(err.Error()))
 }
 
 //main /** starts program, gets HOST:PORT param and calls Start func.
